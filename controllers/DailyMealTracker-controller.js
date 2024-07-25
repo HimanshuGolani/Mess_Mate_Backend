@@ -89,12 +89,25 @@ export const cancellationHandler = async (req, res) => {
 export const todaysCancelation = async (req, res) => {
   try {
     const { date } = req.params;
+
     if (!date) {
       return res.status(400).send({ message: "Date parameter is missing." });
     }
 
+    // Ensure date is in the correct format (ISO string) for querying
+    const startOfDay = new Date(date);
+    const endOfDay = new Date(date);
+    endOfDay.setDate(startOfDay.getDate() + 1);
+
     // Fetch meals canceled on the given date
-    const canceledMeals = await MealTrackerModel.find({ date });
+    const canceledMeals = await MealTrackerModel.find({
+      todaysDate: { $gte: startOfDay, $lt: endOfDay },
+      mealStatus: false,
+    }).populate("userIdOfCustomer");
+
+    console.log("====================================");
+    console.log(canceledMeals);
+    console.log("====================================");
 
     // If no canceled meals are found
     if (canceledMeals.length === 0) {
@@ -103,35 +116,17 @@ export const todaysCancelation = async (req, res) => {
         .send({ message: "No canceled meals for the selected date." });
     }
 
-    // Extract unique customer IDs from canceled meals
-    const customerIds = [
-      ...new Set(canceledMeals.map((meal) => meal.userIdOfCustomer)),
-    ];
-
-    // Fetch customer details for each customer ID
-    const customers = await CustomerModel.find({ _id: { $in: customerIds } });
-
-    // Create a mapping of customer IDs to customer details
-    const customerMap = customers.reduce((acc, customer) => {
-      acc[customer._id.toString()] = {
-        name: customer.name,
-        address: customer.address,
-      };
-      return acc;
-    }, {});
-
     // Format the response with detailed customer information
     const response = canceledMeals.map((meal) => ({
       mealType: meal.mealType,
-      canceledOn: meal.createdAt,
+      canceledOn: meal.todaysDate,
       customer: {
-        name: customerMap[meal.userIdOfCustomer.toString()]?.name || "Unknown",
-        address:
-          customerMap[meal.userIdOfCustomer.toString()]?.address || "Unknown",
+        name: meal.userIdOfCustomer.fullName || "Unknown",
+        address: meal.userIdOfCustomer.address || "Unknown",
       },
     }));
 
-    return res.status(200).send(response);
+    return res.status(200).send({ response });
   } catch (error) {
     console.error("Error fetching today's cancellations:", error);
     res.status(500).send({ message: "Internal server error." });
