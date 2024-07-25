@@ -9,6 +9,6 @@ const mealCancelationRouter = express.Router();
 
 mealCancelationRouter.post("/cancelRequest", cancellationHandler);
 mealCancelationRouter.get("/getTodaysCacnelation/:date", todaysCancelation);
-mealCancelationRouter.get("/getTodasCanelations", canceledMealsList);
+mealCancelationRouter.get("/vendor-getTodasCanelations", canceledMealsList);
 
 export default mealCancelationRouter;
