@@ -139,7 +139,7 @@ export const todaysCancelation = async (req, res) => {
 };
 
 export const canceledMealsList = async (req, res) => {
-  const { vendorId } = req.body;
+  const { vendorId } = req.params;
 
   try {
     // Find the vendor by ID and populate the ListOfCustomers field
