@@ -8,10 +8,10 @@ import moment from "moment";
 export const cancellationHandler = async (req, res) => {
   try {
     // Extracting the mealType from the req.body
-    const { customerId, planId, mealType } = req.body;
+    const { customerId, selectedDate, planId, mealType } = req.body;
 
     // Checking that the parameters for the controllers are non-empty
-    if (!customerId || !planId || !mealType) {
+    if (!customerId || !planId || !mealType || !selectedDate) {
       return res.status(400).send({
         message: "The data is incompletely sent.",
       });
@@ -47,6 +47,7 @@ export const cancellationHandler = async (req, res) => {
       cancelRequest = await MealTrackerModel.create({
         mealType: "Lunch",
         mealStatus: false,
+        todaysDate: selectedDate,
         userIdOfCustomer: customerId,
         planId: planId,
       });
@@ -63,6 +64,7 @@ export const cancellationHandler = async (req, res) => {
       cancelRequest = await MealTrackerModel.create({
         mealType: "Dinner",
         mealStatus: false,
+        todaysDate: selectedDate,
         userIdOfCustomer: customerId,
         planId: planId,
       });
@@ -88,26 +90,16 @@ export const cancellationHandler = async (req, res) => {
 
 export const todaysCancelation = async (req, res) => {
   try {
-    const { date } = req.params;
+    const { selectedDate, customerId } = req.params;
 
-    if (!date) {
+    if (!selectedDate) {
       return res.status(400).send({ message: "Date parameter is missing." });
     }
 
-    // Ensure date is in the correct format (ISO string) for querying
-    const startOfDay = new Date(date);
-    const endOfDay = new Date(date);
-    endOfDay.setDate(startOfDay.getDate() + 1);
-
-    // Fetch meals canceled on the given date
     const canceledMeals = await MealTrackerModel.find({
-      todaysDate: { $gte: startOfDay, $lt: endOfDay },
-      mealStatus: false,
+      userIdOfCustomer: customerId,
+      todaysDate: selectedDate,
     }).populate("userIdOfCustomer");
-
-    console.log("====================================");
-    console.log(canceledMeals);
-    console.log("====================================");
 
     // If no canceled meals are found
     if (canceledMeals.length === 0) {
@@ -125,6 +117,10 @@ export const todaysCancelation = async (req, res) => {
         address: meal.userIdOfCustomer.address || "Unknown",
       },
     }));
+
+    console.log("====================================");
+    console.log(response);
+    console.log("====================================");
 
     return res.status(200).send({ response });
   } catch (error) {
